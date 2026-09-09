@@ -12,6 +12,8 @@ import {
   elapsed,
   isCycleSubmitted,
   payerRevisionNote,
+  pendingSignature,
+  signatureForCurrentVersion,
   type CycleEventInput,
 } from "@/domain";
 import { StatusHeader } from "@/components/StatusHeader";
@@ -52,7 +54,15 @@ function fmtDate(iso: string): string {
   return `${MONTHS[Number(m) - 1]} ${Number(d)}, ${y}`;
 }
 
+function daysAgo(iso: string, now: string): string {
+  const d = Math.max(0, Math.floor((Date.parse(now) - Date.parse(iso)) / 86_400_000));
+  return d === 0 ? "today" : d === 1 ? "1 day ago" : `${d} days ago`;
+}
+
 const nowIso = () => new Date().toISOString();
+
+/** Actions that fake a round-trip to the parent before landing. */
+const ASYNC_KEYS = new Set(["parent_signature"]);
 
 /** The domain event a packet row's action stands for. */
 function packetEvent(item: PacketItem): CycleEventInput | null {
@@ -90,10 +100,21 @@ export function AuthorizationView({ clientId, now }: { clientId: string; now: st
   );
   const [planDrillOpen, setPlanDrillOpen] = useState(false);
   const [generatorOpen, setGeneratorOpen] = useState(false);
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
 
   function dispatch(event: CycleEventInput | null) {
     if (!event) return;
     dispatchCycle(clientId, event);
+  }
+
+  /** Fake a ~0.9s API round-trip, then apply the event. */
+  function dispatchAsync(key: string, event: CycleEventInput | null) {
+    if (!event || pendingKey) return;
+    setPendingKey(key);
+    window.setTimeout(() => {
+      dispatchCycle(clientId, event);
+      setPendingKey(null);
+    }, 900);
   }
 
   const { cycle, client, card } = agg;
@@ -102,6 +123,24 @@ export function AuthorizationView({ clientId, now }: { clientId: string; now: st
   const revision = payerRevisionNote(agg);
   const events = activityLog(agg);
   const elapsedDays = Math.max(0, elapsed(agg, now).days);
+  const authType = AUTH_TYPE_LABEL[cycle.authType];
+  const payer = <span className="font-semibold text-violet-700">{card.payerName}</span>;
+
+  /** Parent-signature row subline — surfaces how long it's been out. */
+  function signatureSubline(item: PacketItem): string | undefined {
+    if (item.status === "in_progress") {
+      const s = pendingSignature(agg);
+      if (!s) return undefined;
+      let line = `Requested ${daysAgo(s.requestedAt, now)}`;
+      if (s.remindedAt) line += ` · reminded ${daysAgo(s.remindedAt, now)}`;
+      return line;
+    }
+    if (item.status === "complete") {
+      const s = signatureForCurrentVersion(agg);
+      return s?.signedAt ? `Signed ${fmtDate(s.signedAt)}` : undefined;
+    }
+    return undefined; // "missing" → the default "Not requested"
+  }
 
   const devEvents: { label: string; make: () => CycleEventInput }[] = [
     { label: "Simulate parent signs", make: () => ({ type: "parent_signs", at: nowIso() }) },
@@ -149,7 +188,11 @@ export function AuthorizationView({ clientId, now }: { clientId: string; now: st
           className="mt-3"
           status={cycle.status}
           elapsedDays={elapsedDays}
-          subtitle={`${AUTH_TYPE_LABEL[cycle.authType]} · ${card.payerName}`}
+          subtitle={
+            <>
+              {authType} · {payer}
+            </>
+          }
         />
 
         <ProgressBar className="mt-8" phase={cycle.status.phase} isCycleSubmitted={isCycleSubmitted(agg)} />
@@ -157,7 +200,7 @@ export function AuthorizationView({ clientId, now }: { clientId: string; now: st
         <section className="mt-8">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Submission</h3>
           <p className="mt-1 text-sm text-zinc-500">
-            {card.payerName} · {AUTH_TYPE_LABEL[cycle.authType]}
+            {payer} · {authType}
           </p>
           <div className="mt-3">
             <SubmitAction
@@ -200,12 +243,19 @@ export function AuthorizationView({ clientId, now }: { clientId: string; now: st
                   />
                 );
               }
+              const isAsync = ASYNC_KEYS.has(item.key);
               return (
                 <PacketRow
                   key={item.id}
                   item={item}
                   density="full"
-                  onAction={() => dispatch(packetEvent(item))}
+                  subline={item.key === "parent_signature" ? signatureSubline(item) : undefined}
+                  pending={pendingKey === item.key}
+                  onAction={
+                    isAsync
+                      ? () => dispatchAsync(item.key, packetEvent(item))
+                      : () => dispatch(packetEvent(item))
+                  }
                 />
               );
             })}

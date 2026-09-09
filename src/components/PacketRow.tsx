@@ -34,6 +34,12 @@ export interface PacketRowProps {
   action?: PacketRowAction | null;
   /** Fired when the action button is pressed. */
   onAction?: () => void;
+  /**
+   * When false, the action renders as static text rather than a `<button>` —
+   * for the queue, where the whole row is a link and the action is only a
+   * signpost. Defaults to true.
+   */
+  interactive?: boolean;
   className?: string;
 }
 
@@ -77,10 +83,24 @@ export function defaultAction(item: PacketItem): PacketRowAction | null {
 
 /* ------------------------------ component ------------------------------- */
 
-export function PacketRow({ item, density, subline, action, onAction, className }: PacketRowProps) {
+export function PacketRow({
+  item,
+  density,
+  subline,
+  action,
+  onAction,
+  interactive = true,
+  className,
+}: PacketRowProps) {
   const full = density === "full";
   const resolvedSubline = subline ?? defaultSubline(item);
   const resolvedAction = action === undefined ? defaultAction(item) : action;
+  const primary = resolvedAction ? (resolvedAction.tone ?? "primary") === "primary" : false;
+  const actionClasses = cx(
+    "shrink-0 rounded-md font-medium",
+    full ? "px-3 py-1.5 text-sm" : "px-2.5 py-1 text-xs",
+    primary ? "bg-zinc-900 text-white" : "border border-zinc-300 bg-white text-zinc-700",
+  );
 
   return (
     <div
@@ -109,19 +129,17 @@ export function PacketRow({ item, density, subline, action, onAction, className 
       </div>
 
       {resolvedAction ? (
-        <button
-          type="button"
-          onClick={onAction}
-          className={cx(
-            "shrink-0 rounded-md font-medium transition-colors",
-            full ? "px-3 py-1.5 text-sm" : "px-2.5 py-1 text-xs",
-            (resolvedAction.tone ?? "primary") === "primary"
-              ? "bg-zinc-900 text-white hover:bg-zinc-700"
-              : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50",
-          )}
-        >
-          {resolvedAction.label}
-        </button>
+        interactive ? (
+          <button
+            type="button"
+            onClick={onAction}
+            className={cx(actionClasses, "transition-colors", primary ? "hover:bg-zinc-700" : "hover:bg-zinc-50")}
+          >
+            {resolvedAction.label}
+          </button>
+        ) : (
+          <span className={actionClasses}>{resolvedAction.label}</span>
+        )
       ) : (
         <span className={cx("shrink-0 font-medium text-zinc-400", full ? "text-sm" : "text-xs")}>Done</span>
       )}

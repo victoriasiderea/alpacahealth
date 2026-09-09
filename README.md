@@ -81,12 +81,12 @@ Three blockers (plan, signature, NPI). The progress bar is at `Drafted`. Submit 
 **Treatment Plan Drill-In (Marcus)**
 Shows the payer's revision note, version history, and toolbar for edit, download, replace, audit, finalize.
 
-![Treatment plan modal showing payer requested revisions, v2 current, v1 superseded](public/solution/redesign-003-auth-client-treatment_edit.png)
+![Treatment plan modal showing payer requested revisions, v2 current, v1 superseded](public/solution/redesign-003-auth-client-treatment_pending-generate.png)
 
 **Generator Stub (Jordan)**
 Six named sections with AI-generated badges. Fake latency, then `Review and finalize` dispatches the draft started event.
 
-![Generate treatment plan modal showing sections with checkmarks and AI-GENERATED labels](public/solution/redesign-004-auth-client-treatment_pending-generate.png)
+![Generate treatment plan modal showing sections with checkmarks and AI-GENERATED labels](public/solution/redesign-003-auth-client-treatment_pending-generate.png)
 
 ## What Was Built
 

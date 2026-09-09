@@ -19,6 +19,7 @@ import { ProgressBar } from "@/components/ProgressBar";
 import { PacketRow } from "@/components/PacketRow";
 import { PayerNote } from "@/components/PayerNote";
 import { PlanDrillIn } from "@/components/PlanDrillIn";
+import { GeneratorModal } from "@/components/GeneratorModal";
 
 /**
  * Client-side shell for the Authorization page. Holds the cycle aggregate in
@@ -56,10 +57,8 @@ const nowIso = () => new Date().toISOString();
 function packetEvent(item: PacketItem): CycleEventInput | null {
   const at = nowIso();
   switch (item.key) {
-    case "treatment_plan":
-      return item.status === "missing"
-        ? { type: "start_draft", at, origin: "generated_in_alpaca", auditWarningCount: 4 }
-        : { type: "finalize", at };
+    // "treatment_plan" is handled in the render: "missing" opens the generator
+    // modal, an existing plan opens the drill-in — neither routes through here.
     case "parent_signature":
       return item.status === "in_progress"
         ? { type: "send_reminder", at }
@@ -85,6 +84,7 @@ function packetEvent(item: PacketItem): CycleEventInput | null {
 export function AuthorizationView({ initialAgg, now }: { initialAgg: CycleAggregate; now: string }) {
   const [agg, setAgg] = useState(initialAgg);
   const [planDrillOpen, setPlanDrillOpen] = useState(false);
+  const [generatorOpen, setGeneratorOpen] = useState(false);
 
   function dispatch(event: CycleEventInput | null) {
     if (!event) return;
@@ -159,6 +159,16 @@ export function AuthorizationView({ initialAgg, now }: { initialAgg: CycleAggreg
                     action={{ label: item.status === "complete" ? "View" : "Edit goals", tone: "secondary" }}
                     onAction={() => setPlanDrillOpen(true)}
                     onRowClick={() => setPlanDrillOpen(true)}
+                  />
+                );
+              }
+              if (isPlan) {
+                return (
+                  <PacketRow
+                    key={item.id}
+                    item={item}
+                    density="full"
+                    onAction={() => setGeneratorOpen(true)}
                   />
                 );
               }
@@ -244,6 +254,16 @@ export function AuthorizationView({ initialAgg, now }: { initialAgg: CycleAggreg
         onFinalize={() => dispatch({ type: "finalize", at: nowIso() })}
         canFinalize={canApply(agg, { type: "finalize", at: nowIso() })}
       />
+
+      {generatorOpen ? (
+        <GeneratorModal
+          onClose={() => setGeneratorOpen(false)}
+          onFinalize={() => {
+            setGeneratorOpen(false);
+            dispatch({ type: "start_draft", at: nowIso(), origin: "generated_in_alpaca", auditWarningCount: 4 });
+          }}
+        />
+      ) : null}
     </div>
   );
 }

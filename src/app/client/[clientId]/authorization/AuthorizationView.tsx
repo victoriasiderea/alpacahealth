@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { AuthType, CycleAggregate, CycleEventKind, CycleStatus, PacketItem } from "@/domain";
 import {
   activityLog,
@@ -129,7 +130,21 @@ export function AuthorizationView({ initialAgg, now }: { initialAgg: CycleAggreg
   return (
     <div className="flex-1 bg-zinc-50">
       <main className="mx-auto max-w-3xl px-8 py-12">
-        <p className="text-sm text-zinc-500">
+        <nav className="text-sm text-zinc-500">
+          <Link href="/" className="hover:text-zinc-800 hover:underline">
+            Home
+          </Link>
+          <span className="mx-1.5 text-zinc-300">/</span>
+          <Link href="/" className="hover:text-zinc-800 hover:underline">
+            Client List
+          </Link>
+          <span className="mx-1.5 text-zinc-300">/</span>
+          <span className="text-zinc-700">{client.name}</span>
+          <span className="mx-1.5 text-zinc-300">/</span>
+          <span className="font-medium text-zinc-900">Authorization</span>
+        </nav>
+
+        <p className="mt-4 text-sm text-zinc-500">
           {client.name} · DOB {fmtDate(client.dateOfBirth)}
         </p>
 
@@ -141,6 +156,22 @@ export function AuthorizationView({ initialAgg, now }: { initialAgg: CycleAggreg
         />
 
         <ProgressBar className="mt-8" phase={cycle.status.phase} isCycleSubmitted={isCycleSubmitted(agg)} />
+
+        <section className="mt-8">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Submission</h3>
+          <p className="mt-1 text-sm text-zinc-500">
+            {card.payerName} · {AUTH_TYPE_LABEL[cycle.authType]}
+          </p>
+          <div className="mt-3">
+            <SubmitAction
+              status={cycle.status}
+              blockers={blockers}
+              submittable={canSubmit(agg)}
+              expectedStart={cycle.expectedStartOfTreatment}
+              onSubmit={() => dispatch({ type: "submit_request", at: nowIso() })}
+            />
+          </div>
+        </section>
 
         {revision ? <PayerNote className="mt-8" note={revision.note ?? ""} at={revision.at} /> : null}
 
@@ -182,17 +213,6 @@ export function AuthorizationView({ initialAgg, now }: { initialAgg: CycleAggreg
               );
             })}
           </div>
-        </section>
-
-        <section className="mt-8">
-          <SubmitAction
-            status={cycle.status}
-            payerName={card.payerName}
-            blockers={blockers}
-            submittable={canSubmit(agg)}
-            expectedStart={cycle.expectedStartOfTreatment}
-            onSubmit={() => dispatch({ type: "submit_request", at: nowIso() })}
-          />
         </section>
 
         <section className="mt-12">
@@ -270,14 +290,12 @@ export function AuthorizationView({ initialAgg, now }: { initialAgg: CycleAggreg
 
 function SubmitAction({
   status,
-  payerName,
   blockers,
   submittable,
   expectedStart,
   onSubmit,
 }: {
   status: CycleStatus;
-  payerName: string;
   blockers: number;
   submittable: boolean;
   expectedStart: string;
@@ -310,7 +328,7 @@ function SubmitAction({
           submittable ? "bg-zinc-900 text-white hover:bg-zinc-700" : "cursor-not-allowed bg-zinc-200 text-zinc-400",
         ].join(" ")}
       >
-        Create request — {payerName}
+        Create Request
       </button>
 
       {blockers > 0 ? (

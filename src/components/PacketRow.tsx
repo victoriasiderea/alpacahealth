@@ -35,6 +35,12 @@ export interface PacketRowProps {
   /** Fired when the action button is pressed. */
   onAction?: () => void;
   /**
+   * Fired when the row body (icon + label) is clicked — opens the item's
+   * drill-in. When set, the body becomes a button; the action button stays a
+   * separate control.
+   */
+  onRowClick?: () => void;
+  /**
    * When false, the action renders as static text rather than a `<button>` —
    * for the queue, where the whole row is a link and the action is only a
    * signpost. Defaults to true.
@@ -89,6 +95,7 @@ export function PacketRow({
   subline,
   action,
   onAction,
+  onRowClick,
   interactive = true,
   className,
 }: PacketRowProps) {
@@ -102,6 +109,26 @@ export function PacketRow({
     primary ? "bg-zinc-900 text-white" : "border border-zinc-300 bg-white text-zinc-700",
   );
 
+  const iconAndBody = (
+    <>
+      <StatusIcon kind={item.kind} status={item.status} className={full ? "size-5" : "size-4"} />
+
+      <div className="min-w-0 flex-1">
+        {full ? (
+          <>
+            <div className="truncate font-semibold text-zinc-900 group-hover/row:underline">{item.label}</div>
+            <div className="mt-0.5 text-sm text-zinc-500">{resolvedSubline}</div>
+          </>
+        ) : (
+          <div className="flex min-w-0 items-baseline gap-2">
+            <span className="truncate text-sm font-medium text-zinc-900 group-hover/row:underline">{item.label}</span>
+            <span className="shrink-0 text-xs text-zinc-400">{resolvedSubline}</span>
+          </div>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div
       data-kind={item.kind}
@@ -112,21 +139,17 @@ export function PacketRow({
         className,
       )}
     >
-      <StatusIcon kind={item.kind} status={item.status} className={full ? "size-5" : "size-4"} />
-
-      <div className="min-w-0 flex-1">
-        {full ? (
-          <>
-            <div className="truncate font-semibold text-zinc-900">{item.label}</div>
-            <div className="mt-0.5 text-sm text-zinc-500">{resolvedSubline}</div>
-          </>
-        ) : (
-          <div className="flex min-w-0 items-baseline gap-2">
-            <span className="truncate text-sm font-medium text-zinc-900">{item.label}</span>
-            <span className="shrink-0 text-xs text-zinc-400">{resolvedSubline}</span>
-          </div>
-        )}
-      </div>
+      {onRowClick ? (
+        <button
+          type="button"
+          onClick={onRowClick}
+          className={cx("group/row flex min-w-0 flex-1 items-center text-left", full ? "gap-4" : "gap-3")}
+        >
+          {iconAndBody}
+        </button>
+      ) : (
+        iconAndBody
+      )}
 
       {resolvedAction ? (
         interactive ? (

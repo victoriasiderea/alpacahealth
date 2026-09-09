@@ -18,6 +18,7 @@ import { StatusHeader } from "@/components/StatusHeader";
 import { ProgressBar } from "@/components/ProgressBar";
 import { PacketRow } from "@/components/PacketRow";
 import { PayerNote } from "@/components/PayerNote";
+import { PlanDrillIn } from "@/components/PlanDrillIn";
 
 /**
  * Client-side shell for the Authorization page. Holds the cycle aggregate in
@@ -83,6 +84,7 @@ function packetEvent(item: PacketItem): CycleEventInput | null {
 
 export function AuthorizationView({ initialAgg, now }: { initialAgg: CycleAggregate; now: string }) {
   const [agg, setAgg] = useState(initialAgg);
+  const [planDrillOpen, setPlanDrillOpen] = useState(false);
 
   function dispatch(event: CycleEventInput | null) {
     if (!event) return;
@@ -145,14 +147,30 @@ export function AuthorizationView({ initialAgg, now }: { initialAgg: CycleAggreg
         <section className="mt-10">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Packet</h3>
           <div className="mt-3 space-y-2">
-            {packet.map((item) => (
-              <PacketRow
-                key={item.id}
-                item={item}
-                density="full"
-                onAction={() => dispatch(packetEvent(item))}
-              />
-            ))}
+            {packet.map((item) => {
+              const isPlan = item.key === "treatment_plan";
+              const planExists = agg.plan != null;
+              if (isPlan && planExists) {
+                return (
+                  <PacketRow
+                    key={item.id}
+                    item={item}
+                    density="full"
+                    action={{ label: item.status === "complete" ? "View" : "Edit goals", tone: "secondary" }}
+                    onAction={() => setPlanDrillOpen(true)}
+                    onRowClick={() => setPlanDrillOpen(true)}
+                  />
+                );
+              }
+              return (
+                <PacketRow
+                  key={item.id}
+                  item={item}
+                  density="full"
+                  onAction={() => dispatch(packetEvent(item))}
+                />
+              );
+            })}
           </div>
         </section>
 
@@ -216,6 +234,16 @@ export function AuthorizationView({ initialAgg, now }: { initialAgg: CycleAggreg
           </div>
         </section>
       </main>
+
+      <PlanDrillIn
+        open={planDrillOpen}
+        onClose={() => setPlanDrillOpen(false)}
+        versions={agg.versions}
+        currentVersionId={agg.plan?.currentVersionId ?? null}
+        payerNote={revision && revision.note ? { note: revision.note, at: revision.at } : null}
+        onFinalize={() => dispatch({ type: "finalize", at: nowIso() })}
+        canFinalize={canApply(agg, { type: "finalize", at: nowIso() })}
+      />
     </div>
   );
 }

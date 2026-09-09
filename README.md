@@ -1,6 +1,6 @@
 # Alpaca Health Take-Home: Authorization Redesign
 
-![Alpaca Health logo](public/images/logo.png.png)
+![Alpaca Health logo](public/images/logo.png)
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/6714e71c-821b-4415-be9f-b6f6762c0a4c/deploy-status)](https://app.netlify.com/projects/alpaca-health/deploys)
 

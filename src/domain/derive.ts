@@ -12,6 +12,7 @@
 
 import type {
   CycleAggregate,
+  CycleEvent,
   CycleEventKind,
   CyclePhase,
   PacketItem,
@@ -161,6 +162,26 @@ export function elapsed(agg: CycleAggregate, now: string): { since: string; days
   const since = phaseEnteredAt(agg);
   const days = Math.floor((Date.parse(now) - Date.parse(since)) / 86_400_000);
   return { since, days };
+}
+
+/* ----------------------------- history ------------------------------- */
+
+/** The cycle has been sent to the payer at least once. */
+export function isCycleSubmitted(agg: CycleAggregate): boolean {
+  return agg.events.some((e) => e.kind === "submitted");
+}
+
+/** The most recent payer revision request, or null. Its `note` is shown verbatim. */
+export function payerRevisionNote(agg: CycleAggregate): CycleEvent | null {
+  for (let i = agg.events.length - 1; i >= 0; i--) {
+    if (agg.events[i].kind === "payer_requested_revisions") return agg.events[i];
+  }
+  return null;
+}
+
+/** Events newest-first, for an activity log. */
+export function activityLog(agg: CycleAggregate): CycleEvent[] {
+  return [...agg.events].sort((a, b) => b.at.localeCompare(a.at));
 }
 
 /* --------------------------- one-shot summary ------------------------- */

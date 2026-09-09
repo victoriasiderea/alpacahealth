@@ -4,10 +4,11 @@
  * Props: the cycle `status` (the domain discriminated union) and `elapsedDays`.
  * It reads only `status.phase` — a total lookup to a title string — and never
  * inspects the union's payload (submittedAt, approved dates, …). The subtitle is
- * passed in; the elapsed badge is shown only when `elapsedDays > 0` and its text
- * comes from that number alone.
+ * passed in. The elapsed badge shows only when `elapsedDays > 0`; its text comes
+ * from that number, and it warms to amber past a week and red past two.
  */
 
+import type { ReactNode } from "react";
 import type { CyclePhase, CycleStatus } from "@/domain";
 
 export const PHASE_TITLE: Record<CyclePhase, string> = {
@@ -23,7 +24,7 @@ export const PHASE_TITLE: Record<CyclePhase, string> = {
 export interface StatusHeaderProps {
   status: CycleStatus;
   elapsedDays: number;
-  subtitle: string;
+  subtitle: ReactNode;
   className?: string;
 }
 
@@ -32,6 +33,13 @@ function cx(...parts: Array<string | false | null | undefined>): string {
 }
 
 export function StatusHeader({ status, elapsedDays, subtitle, className }: StatusHeaderProps) {
+  const badgeTone =
+    elapsedDays > 14
+      ? "bg-red-100 text-red-700"
+      : elapsedDays > 7
+        ? "bg-amber-100 text-amber-700"
+        : "bg-zinc-100 text-zinc-600";
+
   return (
     <header className={cx("flex items-start justify-between gap-4", className)}>
       <div className="min-w-0">
@@ -40,7 +48,12 @@ export function StatusHeader({ status, elapsedDays, subtitle, className }: Statu
       </div>
 
       {elapsedDays > 0 ? (
-        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600">
+        <span
+          className={cx(
+            "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
+            badgeTone,
+          )}
+        >
           <svg
             viewBox="0 0 24 24"
             fill="none"

@@ -46,6 +46,8 @@ export interface PacketRowProps {
    * signpost. Defaults to true.
    */
   interactive?: boolean;
+  /** Action is mid-flight (fake API call) — shows a spinner and disables. */
+  pending?: boolean;
   className?: string;
 }
 
@@ -97,9 +99,11 @@ export function PacketRow({
   onAction,
   onRowClick,
   interactive = true,
+  pending = false,
   className,
 }: PacketRowProps) {
   const full = density === "full";
+  const blocking = item.status !== "complete";
   const resolvedSubline = subline ?? defaultSubline(item);
   const resolvedAction = action === undefined ? defaultAction(item) : action;
   const primary = resolvedAction ? (resolvedAction.tone ?? "primary") === "primary" : false;
@@ -134,8 +138,9 @@ export function PacketRow({
       data-kind={item.kind}
       data-status={item.status}
       className={cx(
-        "flex items-center border border-zinc-200 bg-white",
+        "flex items-center border bg-white",
         full ? "gap-4 rounded-lg px-4 py-3.5" : "gap-3 rounded-md px-3 py-2",
+        full && blocking ? "border-rose-200" : "border-zinc-200",
         className,
       )}
     >
@@ -156,9 +161,21 @@ export function PacketRow({
           <button
             type="button"
             onClick={onAction}
-            className={cx(actionClasses, "transition-colors", primary ? "hover:bg-zinc-700" : "hover:bg-zinc-50")}
+            disabled={pending}
+            className={cx(
+              actionClasses,
+              "transition-colors",
+              pending ? "cursor-wait opacity-70" : primary ? "hover:bg-zinc-700" : "hover:bg-zinc-50",
+            )}
           >
-            {resolvedAction.label}
+            {pending ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Working…
+              </span>
+            ) : (
+              resolvedAction.label
+            )}
           </button>
         ) : (
           <span className={actionClasses}>{resolvedAction.label}</span>

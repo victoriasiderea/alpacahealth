@@ -1,5 +1,11 @@
 # Alpaca Health Take-Home: Authorization Redesign
 
+![Alpaca Health logo](public/images/logo.png.png)
+
+[![Netlify Status](https://api.netlify.com/api/v1/badges/6714e71c-821b-4415-be9f-b6f6762c0a4c/deploy-status)](https://app.netlify.com/projects/alpaca-health/deploys)
+
+## 🦙 [alpaca-health.netlify.app](https://alpaca-health.netlify.app/)
+
 ## The Problem
 
 Clinicians work across two tabs to authorize treatment: **Treatment Plans** (where documents live) and **Care Readiness** (where checklists live). Neither is organized around what they're actually doing: **get one authorization approved.**
@@ -144,9 +150,9 @@ If a check runs stale between draft and submission, should that be a blocker? Th
 
 ## Deployment
 
-**Live:** [link to deployed prototype]
+**Live:** [alpaca-health.netlify.app](https://alpaca-health.netlify.app/)
 
-**Repo:** [link to source]
+**Repo:** [github.com/victoriasiderea/alpacahealth](https://github.com/victoriasiderea/alpacahealth)
 
 **Local:** `npm install && npm run dev` → localhost:3000
 

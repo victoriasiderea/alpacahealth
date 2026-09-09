@@ -65,22 +65,22 @@ Clinicians see open cycles grouped by what's blocking: `Needs you`, `Waiting on 
 **Authorization Queue**
 All cycles grouped by blockers. One place to see the whole caseload.
 
-![Authorization queue showing Jordan, Dana, Priya, and Marcus grouped by blocker status](solution/redesign-001-auth-queue.png)
+![Authorization queue showing Jordan, Dana, Priya, and Marcus grouped by blocker status](public/solution/redesign-001-auth-queue.png)
 
 **Authorization Page: Ready to Start (Jordan)**
 Three blockers (plan, signature, NPI). The progress bar is at `Drafted`. Submit button is disabled.
 
-![Jordan's authorization page showing 3 items blocking, all requirements listed](solution/redesign-002-auth-client-treatment_pending.png)
+![Jordan's authorization page showing 3 items blocking, all requirements listed](public/solution/redesign-002-auth-client-treatment_pending.png)
 
 **Treatment Plan Drill-In (Marcus)**
 Shows the payer's revision note, version history, and toolbar for edit, download, replace, audit, finalize.
 
-![Treatment plan modal showing payer requested revisions, v2 current, v1 superseded](solution/redesign-003-auth-client-treatment_edit.png)
+![Treatment plan modal showing payer requested revisions, v2 current, v1 superseded](public/solution/redesign-003-auth-client-treatment_edit.png)
 
 **Generator Stub (Jordan)**
 Six named sections with AI-generated badges. Fake latency, then `Review and finalize` dispatches the draft started event.
 
-![Generate treatment plan modal showing sections with checkmarks and AI-GENERATED labels](solution/redesign-004-auth-client-treatment_pending-generate.png)
+![Generate treatment plan modal showing sections with checkmarks and AI-GENERATED labels](public/solution/redesign-004-auth-client-treatment_pending-generate.png)
 
 ## What Was Built
 

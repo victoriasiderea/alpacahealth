@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import type { AuthType, CycleAggregate, CycleEventKind, CycleStatus, PacketItem } from "@/domain";
+import type { AuthType, CycleEventKind, CycleStatus, PacketItem } from "@/domain";
 import {
   activityLog,
-  applyEvent,
   blockingItemCount,
   buildPacket,
   canApply,
@@ -21,6 +20,7 @@ import { PacketRow } from "@/components/PacketRow";
 import { PayerNote } from "@/components/PayerNote";
 import { PlanDrillIn } from "@/components/PlanDrillIn";
 import { GeneratorModal } from "@/components/GeneratorModal";
+import { dispatchCycle, getCycle, getServerCycle, subscribe } from "@/lib/cycleStore";
 
 /**
  * Client-side shell for the Authorization page. Holds the cycle aggregate in
@@ -82,21 +82,18 @@ function packetEvent(item: PacketItem): CycleEventInput | null {
   }
 }
 
-export function AuthorizationView({ initialAgg, now }: { initialAgg: CycleAggregate; now: string }) {
-  const [agg, setAgg] = useState(initialAgg);
+export function AuthorizationView({ clientId, now }: { clientId: string; now: string }) {
+  const agg = useSyncExternalStore(
+    subscribe,
+    useCallback(() => getCycle(clientId)!, [clientId]),
+    useCallback(() => getServerCycle(clientId)!, [clientId]),
+  );
   const [planDrillOpen, setPlanDrillOpen] = useState(false);
   const [generatorOpen, setGeneratorOpen] = useState(false);
 
   function dispatch(event: CycleEventInput | null) {
     if (!event) return;
-    setAgg((current) => {
-      try {
-        return applyEvent(current, event);
-      } catch (err) {
-        console.warn("[dev] event rejected:", err);
-        return current;
-      }
-    });
+    dispatchCycle(clientId, event);
   }
 
   const { cycle, client, card } = agg;

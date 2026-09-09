@@ -8,6 +8,8 @@
  *               reminder sent.
  *   Marcus T. — drafting after revisions. Payor returned the goals section;
  *               v1 is signed, v2 is in progress, so the v1 signature is stale.
+ *   Dana K.   — ready_to_submit. Draft finalized, parent signed, every packet
+ *               item satisfied — zero blockers. The "just press submit" case.
  *
  * Each seed is built by replaying real events through the state machine, so the
  * fixtures cannot drift from the transition rules.
@@ -77,6 +79,7 @@ export function replay(agg: CycleAggregate, events: CycleEventInput[]): CycleAgg
 const jordanClient: Client = { id: "cl-jordan", name: "Jordan Meadows", dateOfBirth: "2018-04-11" };
 const priyaClient: Client = { id: "cl-priya", name: "Priya Raman", dateOfBirth: "2019-09-02" };
 const marcusClient: Client = { id: "cl-marcus", name: "Marcus Turner", dateOfBirth: "2017-11-20" };
+const danaClient: Client = { id: "cl-dana", name: "Dana Kessler", dateOfBirth: "2019-02-14" };
 
 const jordanCard: InsuranceCard = {
   id: "ins-jordan",
@@ -105,6 +108,17 @@ const marcusCard: InsuranceCard = {
   clientId: "cl-marcus",
   payerName: "Aetna",
   memberId: "W5561402",
+  isPrimary: true,
+  networkStatus: "in_network",
+  planType: "PPO",
+  planStartDate: "2026-01-01",
+};
+
+const danaCard: InsuranceCard = {
+  id: "ins-dana",
+  clientId: "cl-dana",
+  payerName: "United Healthcare",
+  memberId: "U88203417",
   isPrimary: true,
   networkStatus: "in_network",
   planType: "PPO",
@@ -208,10 +222,37 @@ export const marcus: CycleAggregate = (() => {
   return { ...run, versions: [supersededUpload, ...run.versions] };
 })();
 
+/* --------------------------------- Dana ------------------------------ */
+
+export const dana: CycleAggregate = replay(
+  newCycle({
+    id: "cyc-dana-tx",
+    client: danaClient,
+    card: danaCard,
+    authType: "first_treatment_authorization",
+    createdAt: addDays(SEED_NOW, -14),
+    requestedStartDate: "2026-10-01",
+    requestedEndDate: "2027-03-30",
+    expectedStartOfTreatment: "2026-10-01",
+    file: {
+      supervisingClinicianNpi: "1730456821",
+      referralLetterDate: "2026-08-25",
+      benefitCheckStatus: "complete",
+      diagnosisVerified: true,
+    },
+  }),
+  [
+    { type: "start_draft", at: addDays(SEED_NOW, -12), origin: "generated_in_alpaca", auditWarningCount: 2 },
+    { type: "finalize", at: addDays(SEED_NOW, -6) },
+    { type: "request_signature", at: addDays(SEED_NOW, -5) },
+    { type: "parent_signs", at: addDays(SEED_NOW, -2) },
+  ],
+);
+
 /* ------------------------------- exports ----------------------------- */
 
-export const SEEDS = { jordan, priya, marcus } as const;
+export const SEEDS = { jordan, priya, marcus, dana } as const;
 
 export function seedList(): CycleAggregate[] {
-  return [jordan, priya, marcus];
+  return [jordan, priya, marcus, dana];
 }

@@ -4,15 +4,15 @@ import { SEEDS } from "@/domain";
 import { AuthorizationView } from "./AuthorizationView";
 
 /**
- * Authorization page — the current state of one cycle, wired to the three seed
- * clients (/client/jordan, /client/priya, /client/marcus). The server resolves
- * the seed; AuthorizationView holds it in memory and makes it interactive.
+ * Authorization page — the current state of one cycle, wired to the seed
+ * clients (/client/jordan, /client/priya, /client/marcus, /client/dana). The
+ * server checks the id; AuthorizationView reads and mutates the shared session
+ * store so the queue reflects changes made here.
  */
 
 export default async function AuthorizationPage({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = await params;
-  const agg = (SEEDS as Record<string, CycleAggregate>)[clientId];
-  if (!agg) notFound();
+  if (!(SEEDS as Record<string, CycleAggregate>)[clientId]) notFound();
 
-  return <AuthorizationView initialAgg={agg} now={new Date().toISOString()} />;
+  return <AuthorizationView clientId={clientId} now={new Date().toISOString()} />;
 }

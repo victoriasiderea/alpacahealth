@@ -1,14 +1,19 @@
+"use client";
+
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import type { CycleAggregate, PacketItem } from "@/domain";
-import { SEEDS, SEED_NOW, blockingItems, elapsed } from "@/domain";
-import { PacketRow } from "@/components/PacketRow";
+import { SEED_NOW, blockingItems, elapsed } from "@/domain";
+import { PacketRow, type PacketRowAction } from "@/components/PacketRow";
 import { PHASE_TITLE } from "@/components/StatusHeader";
+import { getEntriesSnapshot, getServerEntriesSnapshot, subscribe } from "@/lib/cycleStore";
 
 /**
  * Home — the cross-client authorization queue. Rows are cycles, one per row,
  * grouped by what is blocking. Each row reuses the packet row at compact
- * density (the representative blocking item) and links to that cycle's
- * Authorization page.
+ * density (the item standing for the next move) and links to that cycle's
+ * Authorization page. Reads the shared session store, so edits made on an
+ * Authorization page show up here on the way back.
  */
 
 type GroupKey = "needs_you" | "waiting" | "expiring";
@@ -25,30 +30,32 @@ function daysBetween(fromIso: string, toIso: string): number {
   return Math.floor((Date.parse(toIso.slice(0, 10)) - Date.parse(fromIso.slice(0, 10))) / 86_400_000);
 }
 
-/** The one blocking item that best represents this cycle's next move. */
+/** The one item that best represents this cycle's next move, real or synthetic. */
 function representativeItem(agg: CycleAggregate): PacketItem | null {
   const blocking = blockingItems(agg);
-  return (
+  const real =
     blocking.find((i) => i.kind === "produce") ??
     blocking.find((i) => i.kind === "gather") ??
-    blocking.find((i) => i.kind === "await") ??
-    (agg.cycle.status.phase === "awaiting_payor"
-      ? {
-          id: `${agg.cycle.id}::payer_decision`,
-          cycleId: agg.cycle.id,
-          key: "payer_decision",
-          label: "Payer decision",
-          kind: "await",
-          status: "in_progress",
-        }
-      : null)
-  );
+    blocking.find((i) => i.kind === "await");
+  if (real) return real;
+
+  const phase = agg.cycle.status.phase;
+  if (phase === "ready_to_submit") {
+    // nothing blocking — the next move is to file the request
+    return { id: `${agg.cycle.id}::submit`, cycleId: agg.cycle.id, key: "submit", label: "Create request", kind: "produce", status: "in_progress" };
+  }
+  if (phase === "awaiting_payor") {
+    return { id: `${agg.cycle.id}::payer_decision`, cycleId: agg.cycle.id, key: "payer_decision", label: "Payer decision", kind: "await", status: "in_progress" };
+  }
+  return null;
 }
 
 interface Row {
   clientId: string;
   agg: CycleAggregate;
   item: PacketItem;
+  subline?: string;
+  action?: PacketRowAction | null;
   group: GroupKey;
   elapsedDays: number;
   expiry: string | null;
@@ -67,8 +74,16 @@ function buildRow(clientId: string, agg: CycleAggregate): Row | null {
     clientId,
     agg,
     item,
+    subline:
+      item.key === "submit" ? "Ready to submit" : item.key === "payer_decision" ? "Awaiting payer decision" : undefined,
+    action:
+      item.key === "submit"
+        ? { label: "Create request", tone: "primary" }
+        : item.key === "payer_decision"
+          ? null
+          : undefined,
     group: expiring ? "expiring" : item.kind === "await" ? "waiting" : "needs_you",
-    elapsedDays: elapsed(agg, SEED_NOW).days,
+    elapsedDays: Math.max(0, elapsed(agg, SEED_NOW).days),
     expiry: expiring
       ? untilStart < 0
         ? "Start date passed"
@@ -80,7 +95,7 @@ function buildRow(clientId: string, agg: CycleAggregate): Row | null {
 }
 
 export default function HomePage() {
-  const entries = Object.entries(SEEDS) as [string, CycleAggregate][];
+  const entries = useSyncExternalStore(subscribe, getEntriesSnapshot, getServerEntriesSnapshot);
   const rows = entries.map(([id, agg]) => buildRow(id, agg)).filter((r): r is Row => r !== null);
   const nothingPending = entries.length - rows.length;
 
@@ -126,6 +141,8 @@ export default function HomePage() {
                           </div>
                           <PacketRow
                             item={row.item}
+                            subline={row.subline}
+                            action={row.action}
                             density="compact"
                             interactive={false}
                             className="group-hover:border-zinc-300 group-hover:shadow-sm"
